@@ -16,12 +16,21 @@ sys.argv = [
     "--max-module-depth-override", "aiter:5",
     "--max-module-depth-override", "sglang.srt.models.deepseek_v2:4",
     "--max-module-depth-override", "sglang.srt.layers.attention.nsa.nsa_indexer:5",
+    "--max-module-depth-override", "sglang.srt.layers.attention:4",
+    "--max-module-depth-override", "sglang.srt.layers.attention.nsa_backend:5",
+    "--max-module-depth-override", "sglang.srt.layers.attention.aiter_backend:5",
+    "--max-module-depth-override", "sglang.srt.layers.moe.rocm_moe_utils:5",
+    "--max-module-depth-override", "sglang.srt.layers.quantization:4",
+    "--max-module-depth-override", "sglang.srt.layers.quantization.fp8:5",
+    "--max-module-depth-override", "sglang.srt.layers.quantization.rocm_mxfp4_utils.py:5",
+    "--max-module-depth-override", "sglang.srt.layers.attention.nsa.nsa_indexer:6",
     "--include-missing",
     "--rankdir", "LR",
     "--include-external", "aiter",
+    "-xx", "sglang", "aiter", "sglang.srt",
     "-o", f"{name}_depth3.svg",
     "--dot-output", f"{name}_depth3.dot",
-    "--highlight", "sglang.srt.models.deepseek_v2", "sglang.srt.layers.attention.nsa",
+    "--highlight", "sglang.srt.models.deepseek_v2", "sglang.srt.layers.attention.nsa", "sglang.srt.layers.attention.nsa.nsa_indexer", "sglang.srt.layers.attention.nsa_backend", "sglang.srt.layers.attention.aiter_backend", "sglang.srt.layers.quantization:yellow", "sglang.srt.speculative:orange"
 ]
 
 from pydeps.pydeps import pydeps

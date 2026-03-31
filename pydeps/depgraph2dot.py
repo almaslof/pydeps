@@ -61,7 +61,14 @@ class PyDepGraphDot(object):
                 visited.add(a)
                 visited.add(b)
 
-            highlight = self.kw.get('highlight', [])
+            highlight_rules = []
+            for entry in self.kw.get('highlight', []):
+                if ':' in entry and entry.rsplit(':', 1)[1].isalpha():
+                    prefix, color = entry.rsplit(':', 1)
+                else:
+                    prefix, color = entry, 'lightgreen'
+                highlight_rules.append((prefix, color))
+
             space = colors.ColorSpace(visited)
             for src in sorted(visited):
                 bg, fg = depgraph.get_colors(src, space)
@@ -76,9 +83,9 @@ class PyDepGraphDot(object):
                     kwargs['fillcolor'] = 'blue'
                     kwargs['fontcolor'] = 'white'
 
-                for prefix in highlight:
+                for prefix, color in highlight_rules:
                     if src.name == prefix or src.name.startswith(prefix + '.'):
-                        kwargs['fillcolor'] = 'lightgreen'
+                        kwargs['fillcolor'] = color
                         kwargs['fontcolor'] = 'black'
                         break
 
