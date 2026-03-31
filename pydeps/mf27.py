@@ -1,6 +1,7 @@
 import sys
 import time
 import struct
+import warnings
 # from .mf.mf_next import *     # for debugging next version
 import modulefinder
 from modulefinder import (
@@ -63,6 +64,40 @@ def load_pyc(fp, mf=None):
 
 
 class ModuleFinder(NativeModuleFinder):
+    def find_module(self, name, path, parent=None):
+        if parent is not None:
+            fullname = "%s.%s" % (parent.__name__, name)
+        else:
+            fullname = name
+        if fullname in self.excludes:
+            self.msgout(3, "find_module -> Excluded", fullname)
+            raise ImportError(name)
+        if path is None:
+            if mfimp.is_builtin(name):
+                return (None, None, ("", "", mfimp.C_BUILTIN))
+            elif mfimp.is_frozen(name):
+                return (None, None, ("", "", mfimp.PY_FROZEN))
+            else:
+                path = self.path
+        return mfimp.find_module(name, path)
+
+    def load_package(self, fqname, pathname):
+        self.msgin(2, "load_package", fqname, pathname)
+        m = self.add_module(fqname)
+        m.__file__ = pathname
+        m.__path__ = [pathname]
+        try:
+            fp, buf, stuff = self.find_module("__init__", m.__path__)
+        except ImportError:
+            self.msgout(2, "load_package (namespace) ->", m)
+            return m
+        try:
+            self.load_module(fqname, fp, buf, stuff)
+        except ImportError:
+            pass
+        self.msgout(2, "load_package ->", m)
+        return m
+
     def import_hook(self, name, caller=None, fromlist=None, level=-1):
         self.msg(3, "import_hook: name(%s) caller(%s) fromlist(%s) level(%s)" % (name, caller, fromlist, level))
         parent = self.determine_parent(caller, level=level)
@@ -94,12 +129,14 @@ class ModuleFinder(NativeModuleFinder):
         if kind == _PY_SOURCE:
             txt = fp.read()
             txt += b'\n' if isinstance(txt, bytes) else '\n'
-            co = compile(
-                txt,
-                pathname,
-                'exec',            # compile code block
-                dont_inherit=True  # [pydeps] don't inherit future statements from current environment
-            )
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", SyntaxWarning)
+                co = compile(
+                    txt,
+                    pathname,
+                    'exec',            # compile code block
+                    dont_inherit=True  # [pydeps] don't inherit future statements from current environment
+                )
 
         elif kind == _PY_COMPILED:
             # (see issue #191)

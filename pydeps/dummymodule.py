@@ -30,13 +30,19 @@ def fname2modname(fname, package_root):
 
 def python_sources_below(directory, package=True):
     for root, dirs, files in os.walk(directory):
-        if package and '__init__.py' not in files:
-            continue
-        dotdirs = [d for d in dirs if d.startswith('.')]
-        for d in dotdirs:
-            dirs.remove(d)
-        if 'migrations' in dirs:
-            dirs.remove('migrations')
+        dirs[:] = [
+            d for d in dirs
+            if not d.startswith('.') and d != 'migrations' and d.isidentifier()
+        ]
+        has_init = '__init__.py' in files
+        if package and not has_init:
+            has_py = any(is_pysource(f) for f in files)
+            has_subpkg = any(
+                os.path.isfile(os.path.join(root, d, '__init__.py'))
+                for d in dirs
+            )
+            if not has_py and not has_subpkg:
+                continue
         for fname in files:
             if is_pysource(fname):  # and fname not in args['exclude']:
                 if fname == '__init__.py':

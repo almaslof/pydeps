@@ -48,6 +48,8 @@ def find_module(name, path=None):
         else:
             path = sys.path
 
+    namespace_dir = None
+
     for entry in path:
         package_directory = os.path.join(entry, name)
         for suffix in ['.py', machinery.BYTECODE_SUFFIXES[0]]:
@@ -61,9 +63,14 @@ def find_module(name, path=None):
             if os.path.isfile(file_path):
                 break
         else:
+            # PEP 420 namespace packages: directory exists but no __init__.py
+            if namespace_dir is None and os.path.isdir(package_directory):
+                namespace_dir = package_directory
             continue
         break  # Break out of outer loop when breaking out of inner loop.
     else:
+        if namespace_dir is not None:
+            return None, namespace_dir, ('', '', PKG_DIRECTORY)
         raise ImportError('No module named {!r}'.format(name), name=name)
 
     encoding = None

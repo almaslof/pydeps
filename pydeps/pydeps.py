@@ -5,6 +5,7 @@ from __future__ import print_function
 import json
 import os
 import sys
+import threading
 
 from pydeps.configs import Config
 from . import py2depgraph, cli, dot, target
@@ -12,6 +13,35 @@ from .depgraph2dot import dep2dot  # , cycles2dot
 import logging
 from . import colors
 log = logging.getLogger(__name__)
+
+try:
+    from tqdm import tqdm as _tqdm
+except ImportError:
+    _tqdm = None
+
+
+def _call_graphviz_with_progress(dotsrc, fmt):
+    if not (_tqdm and sys.stderr.isatty()):
+        return dot.call_graphviz_dot(dotsrc, fmt)
+
+    result = [None]
+    error = [None]
+
+    def run():
+        try:
+            result[0] = dot.call_graphviz_dot(dotsrc, fmt)
+        except Exception as e:
+            error[0] = e
+
+    t = threading.Thread(target=run)
+    t.start()
+    with _tqdm(bar_format="{desc}: {elapsed}", desc="Rendering", file=sys.stderr) as pbar:
+        while t.is_alive():
+            t.join(0.25)
+            pbar.update(0)
+    if error[0] is not None:
+        raise error[0]
+    return result[0]
 
 
 def _pydeps(trgt, **kw):
@@ -67,7 +97,7 @@ def _pydeps(trgt, **kw):
 
         if not no_output:
             try:
-                svg = dot.call_graphviz_dot(dotsrc, fmt)
+                svg = _call_graphviz_with_progress(dotsrc, fmt)
             except OSError as cause:
                 raise RuntimeError("While rendering {!r}: {}".format(output, cause))
             if fmt == 'svg':

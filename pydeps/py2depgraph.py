@@ -35,6 +35,11 @@ from . import mf27
 import logging
 log = logging.getLogger(__name__)
 
+try:
+    from tqdm import tqdm as _tqdm
+except ImportError:
+    _tqdm = None
+
 PYLIB_PATH = depgraph.PYLIB_PATH
 
 
@@ -93,6 +98,7 @@ class MyModuleFinder(mf27.ModuleFinder):
         self._depgraph = defaultdict(dict)
         self._types = {}
         self._last_caller = None
+        self._progress = None
         # path=None, debug=0, excludes=[], replace_paths=[]
 
         debug = 5 if self.verbose >= 4 else 0
@@ -125,8 +131,11 @@ class MyModuleFinder(mf27.ModuleFinder):
         old_last_caller = self._last_caller
         try:
             self._last_caller = caller
-            # print "      last_CALLER:", caller, "OLD-lastcaller:", old_last_caller
-            return mf27.ModuleFinder.import_hook(self, name, caller, fromlist, level)
+            result = mf27.ModuleFinder.import_hook(self, name, caller, fromlist, level)
+            if self._progress and caller and caller.__name__ == '__main__' \
+                    and self._progress.n < self._progress.total:
+                self._progress.update(1)
+            return result
         finally:
             self._last_caller = old_last_caller
 
@@ -234,7 +243,16 @@ def py2dep(target, **kw) -> depgraph.DepGraph:
     if log.isEnabledFor(logging.DEBUG):
         log.debug("CURDIR: %s", os.getcwd())
         log.debug("FNAME: %r, CONTENT:\n%s\n", dummy.fname, dummy.text())
+
+    if _tqdm and sys.stderr.isatty():
+        txt = dummy.text()
+        total = sum(1 for line in txt.splitlines() if line.startswith(('import ', 'from ')))
+        mf._progress = _tqdm(total=total, desc="Scanning", unit=" module", file=sys.stderr)
+
     mf.run_script(dummy.fname)
+
+    if mf._progress:
+        mf._progress.close()
 
     log.info("mf._depgraph:\n%s", json.dumps(dict(mf._depgraph), indent=4))
     log.info("mf.badmodules:\n%s", json.dumps(mf.badmodules, indent=4))
