@@ -13,7 +13,7 @@ sys.argv = [
     "pydeps",
     input_dir,
     "--max-module-depth", "3",
-    "--max-module-depth-override", "aiter:4",
+    "--max-module-depth-override", "aiter:5",
     "--max-module-depth-override", "sglang.srt.models.deepseek_v2:4",
     "--max-module-depth-override", "sglang.srt.layers.attention.nsa.nsa_indexer:5",
     "--include-missing",
