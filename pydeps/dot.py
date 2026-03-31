@@ -44,36 +44,55 @@ def cmd2args(cmd):
     return cmd
 
 
-def pipe(cmd, txt):
+DOT_TIMEOUT = 10
+
+
+def pipe(cmd, txt, timeout=None):
     """Pipe `txt` into the command `cmd` and return the output.
+       Returns None if the process is killed due to timeout.
     """
-    return Popen(
+    proc = Popen(
         cmd2args(cmd),
         stdout=subprocess.PIPE,
         stdin=subprocess.PIPE,
         shell=win32
-    ).communicate(txt)[0]
+    )
+    try:
+        out, _ = proc.communicate(txt, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.communicate()
+        return None
+    return out
+
+
+def _build_graphviz_cmd(engine, fmt, **kw):
+    cmd = "%s -Gstart=1 -T%s" % (engine, fmt)
+    for k, v in list(kw.items()):
+        if v is True:
+            cmd += " -%s" % k
+        else:
+            cmd += " -%s=%s" % (k, v)
+    return cmd
 
 
 def dot(src, **kw):
     """Execute the dot command to create an svg output.
     """
-    cmd = "dot -Gstart=1 -T%s" % kw.pop('T', 'svg')
-    for k, v in list(kw.items()):
-        if v is True:
-            cmd += " -%s" % k
-        else:
-            cmd += " -%s%s" % (k, v)
-
+    fmt = kw.pop('T', 'svg')
+    cmd = _build_graphviz_cmd('dot', fmt, **kw)
     return pipe(cmd, to_bytes(src))
 
 
 def call_graphviz_dot(src, fmt):
     """Call dot command, and provide helpful error message if we
-       cannot find it.
+       cannot find it. Falls back to sfdp if dot takes longer than
+       DOT_TIMEOUT seconds.
     """
     try:
-        svg = dot(src, T=fmt)
+        cmd = _build_graphviz_cmd('dot', fmt)
+        print("Running: %s" % cmd, file=sys.stderr)
+        svg = pipe(cmd, to_bytes(src), timeout=DOT_TIMEOUT)
     except OSError as e:  # pragma: nocover
         if e.errno == 2:
             cli.error("""
@@ -84,6 +103,15 @@ def call_graphviz_dot(src, fmt):
                on your path.
             """)
         raise
+
+    if svg is None:
+        cmd = _build_graphviz_cmd('sfdp', fmt, Goverlap='false')
+        print("dot timed out after %ds, falling back to: %s" % (DOT_TIMEOUT, cmd),
+              file=sys.stderr)
+        svg = pipe(cmd, to_bytes(src))
+        if svg is None:
+            raise RuntimeError("sfdp also failed to render the graph")
+
     return svg
 
 

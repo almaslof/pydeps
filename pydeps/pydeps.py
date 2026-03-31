@@ -83,17 +83,16 @@ def _pydeps(trgt, **kw):
     dotsrc = depgraph_to_dotsrc(trgt, dep_graph, **kw)
 
     if not nodot:
-        if kw.get('show_dot'):
-            cli.verbose("DOTSRC:")
-            if dot_out:
-                # make sure output files are written to sensible directories
-                directory, _fname = os.path.split(dot_out)
-                if not directory:
-                    dot_out = os.path.join(trgt.calling_dir, dot_out)
-                with open(dot_out, 'w') as fp:
-                    fp.write(dotsrc)
-            else:
-                print(dotsrc)
+        if dot_out:
+            directory, _fname = os.path.split(dot_out)
+            if not directory:
+                dot_out = os.path.join(trgt.calling_dir, dot_out)
+            with open(dot_out, 'w') as fp:
+                cli.verbose("Writing dot output to:", dot_out)
+                fp.write(dotsrc)
+
+        if kw.get('show_dot') and not dot_out:
+            print(dotsrc)
 
         if not no_output:
             try:
