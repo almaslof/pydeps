@@ -61,6 +61,7 @@ class PyDepGraphDot(object):
                 visited.add(a)
                 visited.add(b)
 
+            highlight = self.kw.get('highlight', [])
             space = colors.ColorSpace(visited)
             for src in sorted(visited):
                 bg, fg = depgraph.get_colors(src, space)
@@ -74,6 +75,12 @@ class PyDepGraphDot(object):
                     kwargs['shape'] = 'box'
                     kwargs['fillcolor'] = 'blue'
                     kwargs['fontcolor'] = 'white'
+
+                for prefix in highlight:
+                    if src.name == prefix or src.name.startswith(prefix + '.'):
+                        kwargs['fillcolor'] = 'lightgreen'
+                        kwargs['fontcolor'] = 'black'
+                        break
 
                 ctx.write_node(
                     src.name,

@@ -160,7 +160,7 @@ def parse_args(argv=()):
     args.add('--noise-level', default=200, type=int, metavar="INT", help="exclude sources or sinks with degree greater than noise-level")
     args.add('--max-bacon', default=2, type=int, metavar="INT", help="exclude nodes that are more than n hops away (default=2, 0 -> infinite)")
     args.add('--max-module-depth', default=0, type=int, metavar="INT", help="coalesce deep modules to at most n levels")
-    args.add('--max-module-depth-override', default=[], nargs="+", metavar="MOD:DEPTH", dest='max_module_depth_override', help="per-module depth overrides, e.g. aiter:4 nixl:2")
+    args.add('--max-module-depth-override', default=[], nargs="+", action="extend", metavar="MOD:DEPTH", dest='max_module_depth_override', help="per-module depth overrides, e.g. aiter:4 nixl:2")
     args.add('--pylib', action='store_true', help="include python std lib modules")
     args.add('--pylib-all', action='store_true', help="include python all std lib modules (incl. C modules)")
     args.add('--include-missing', action='store_true', help="include modules that are not installed (or can't be found on sys.path)")
@@ -179,6 +179,7 @@ def parse_args(argv=()):
     args.add('--collapse-target-cluster', action='store_true', help="collapse target module (--keep-target-cluster will be ignored)")
     args.add('--rmprefix', default=[], nargs="+", metavar="PREFIX", help="remove PREFIX from the displayed name of the nodes")
     args.add('--start-color', default=0, type=int, metavar="INT", help="starting value for hue from 0 (red/default) to 360.")
+    args.add('--highlight', default=[], nargs="+", action="extend", metavar="MODULE", help="highlight matching modules with light green fill")
 
     # args.write_default_config()
     _args = args.parse_args(argv)

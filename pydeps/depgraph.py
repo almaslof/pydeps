@@ -357,9 +357,14 @@ class DepGraph(object):
         parts = res.split('.')
         depth = self.max_module_depth
         if self.module_depth_overrides:
-            top = parts[0]
-            if top in self.module_depth_overrides:
-                depth = self.module_depth_overrides[top]
+            # match the most specific prefix, e.g. sglang.srt.models beats sglang
+            best_len = 0
+            for prefix, d in self.module_depth_overrides.items():
+                if res == prefix or res.startswith(prefix + '.'):
+                    plen = prefix.count('.') + 1
+                    if plen > best_len:
+                        best_len = plen
+                        depth = d
         if depth > 0:
             res = '.'.join(parts[:depth])
         return res

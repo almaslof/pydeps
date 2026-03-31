@@ -270,6 +270,9 @@ class Config(object):
     #: starting value for hue from 0 (red/default) to 360.
     start_color = 0
 
+    #: highlight matching modules with light green fill
+    highlight = []
+
     def __init__(self, **kwargs):
         for key in dir(self.__class__):
             if not key.startswith('_'):
@@ -362,6 +365,8 @@ class Config(object):
             self.rmprefix = listval(value)
         if field == 'start_color':
             self.start_color = int(value)
+        if field == 'highlight':
+            self.highlight = listval(value)
 
     def __iter__(self):
         return iter(self.__dict__.items())
