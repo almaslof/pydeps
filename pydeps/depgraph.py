@@ -318,6 +318,7 @@ class DepGraph(object):
         self.exclude_noise()
         self.exclude_bacon(self.args['max_bacon'])
         self.only_filter(self.args.get('only'))
+        self.include_external_filter(self.args.get('include_external'))
 
         excluded = [v for v in list(self.sources.values()) if v.excluded]
         # print "EXCLUDED:", excluded
@@ -550,6 +551,25 @@ class DepGraph(object):
             if not should_include(src):
                 src.excluded = True
                 # print "Excluding bacon:", src.name
+                self._add_skip(src.name)
+
+    def include_external_filter(self, externals):
+        """Keep only the specified external modules. Modules belonging to the
+           target package are always kept. All other external modules are excluded.
+        """
+        if not externals:
+            return
+        target_name = self.target.fname
+        allowed = set(externals)
+
+        for src in list(self.sources.values()):
+            if src.excluded:
+                continue
+            top = src.name.split('.')[0]
+            if top == target_name:
+                continue
+            if top not in allowed:
+                src.excluded = True
                 self._add_skip(src.name)
 
     def remove_excluded(self):

@@ -215,6 +215,9 @@ class Config(object):
     #: only include modules that start with MODULE_PATH
     only = []
 
+    #: external modules to include in the graph (all other externals excluded)
+    include_external = []
+
     #: create list of direct external dependencies
     externals = False
 
@@ -317,6 +320,8 @@ class Config(object):
             self.exclude_exact = listval(value)
         if field == 'only':
             self.only = listval(value)
+        if field == 'include_external':
+            self.include_external = listval(value)
         if field == 'externals':
             self.externals = boolval(value)
         if field == 'reverse':
