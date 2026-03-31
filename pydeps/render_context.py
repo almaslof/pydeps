@@ -53,6 +53,7 @@ class RenderContext(object):
                 {self.concentrate}
                 {self.compound}
                 rankdir = {self.rankdir.value};
+                splines = ortho;
                 node [style=filled,fillcolor="{self.fillcolor}",fontcolor="{self.fontcolor}",fontname=Helvetica,fontsize=10];
 
         """.format(self=self))

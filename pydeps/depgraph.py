@@ -274,6 +274,7 @@ class DepGraph(object):
         self.cyclerelations = set()
         
         self.max_module_depth = args.get('max_module_depth', 0)
+        self.module_depth_overrides = args.get('max_module_depth_override', {})
         self.target = target
 
         self.args = args
@@ -332,7 +333,9 @@ class DepGraph(object):
 
         # if self.args['show_cycles']:
         self.find_import_cycles()
-        
+
+        self.print_graph_stats()
+
         if not self.args['show_deps']:
             cli.verbose(3, self)
 
@@ -351,8 +354,14 @@ class DepGraph(object):
             if self.args.get('verbose', 0) >= 2:  # pragma: nocover
                 print("changing __main__ =>", res)
 
-        if self.max_module_depth > 0:
-            res = '.'.join(res.split('.')[:self.max_module_depth])
+        parts = res.split('.')
+        depth = self.max_module_depth
+        if self.module_depth_overrides:
+            top = parts[0]
+            if top in self.module_depth_overrides:
+                depth = self.module_depth_overrides[top]
+        if depth > 0:
+            res = '.'.join(parts[:depth])
         return res
 
     def __json__(self):
@@ -451,6 +460,8 @@ class DepGraph(object):
                 return
             visited.add(src.name)
             for name in src.imports:
+                if name not in self.sources:
+                    continue
                 impmod = self.sources[name]
 
                 # FIXME: why do we want to exclude **/*/__init__.py? This line
@@ -479,6 +490,8 @@ class DepGraph(object):
         edges = []
         for u in vertices.values():
             for v in u.src.imported_by:
+                if v not in self.sources:
+                    continue
                 tmp = self.sources[v]
                 edges.append((u, vertices[tmp.name]))
         graph = Graph(vertices.values(), edges)
@@ -581,6 +594,28 @@ class DepGraph(object):
                 del self.sources[src.name]
             src.imports = [m for m in src.imports if not self._exclude(m)]
             src.imported_by = [m for m in src.imported_by if not self._exclude(m)]
+
+    def print_graph_stats(self, top_n=10):
+        sources = list(self.sources.values())
+        if not sources:
+            return
+        by_out = sorted(sources, key=lambda s: len(s.imports), reverse=True)[:top_n]
+        by_in = sorted(sources, key=lambda s: len(s.imported_by), reverse=True)[:top_n]
+        print("\n--- Graph: %d nodes, %d edges ---" % (
+            len(sources),
+            sum(len(s.imports) for s in sources),
+        ), file=sys.stderr)
+        print("Top imports (out-edges):", file=sys.stderr)
+        for s in by_out:
+            if not s.imports:
+                break
+            print("  %-50s -> %d" % (s.name, len(s.imports)), file=sys.stderr)
+        print("Top imported-by (in-edges):", file=sys.stderr)
+        for s in by_in:
+            if not s.imported_by:
+                break
+            print("  %-50s <- %d" % (s.name, len(s.imported_by)), file=sys.stderr)
+        print(file=sys.stderr)
 
     def _add_skip(self, name):
         # print 'add skip:', name

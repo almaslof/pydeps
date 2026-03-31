@@ -65,10 +65,9 @@ class PyDepGraphDot(object):
             for src in sorted(visited):
                 bg, fg = depgraph.get_colors(src, space)
                 fillcolor = colors.rgb2css(bg)
-                fontcolor = colors.rgb2css(fg)
                 kwargs = {
                     'fillcolor': fillcolor,
-                    'fontcolor': fontcolor,
+                    'fontcolor': 'white',
                 }
 
                 if src.name in depgraph.cyclenodes:

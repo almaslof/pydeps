@@ -51,6 +51,21 @@ def listval(v):
     raise ValueError("Don't know how to convert %r to list" % v)
 
 
+def depth_override_val(v):
+    """Parse a list of 'module:depth' strings into a dict."""
+    if isinstance(v, dict):
+        return v
+    if is_string(v):
+        v = v.split()
+    result = {}
+    for item in v:
+        if ':' not in item:
+            raise ValueError("Expected MOD:DEPTH format, got %r" % item)
+        mod, depth = item.rsplit(':', 1)
+        result[mod] = int(depth)
+    return result
+
+
 def identity(v):
     return v
 
@@ -196,6 +211,9 @@ class Config(object):
     #: coalesce deep modules to at most n levels
     max_module_depth = 0
 
+    #: per-module depth overrides (e.g. aiter:4 nixl:2)
+    max_module_depth_override = {}
+
     #: include python std lib modules
     pylib = False
 
@@ -308,6 +326,8 @@ class Config(object):
             self.max_bacon = int(value)
         if field == 'max_module_depth':
             self.max_module_depth = int(value)
+        if field == 'max_module_depth_override':
+            self.max_module_depth_override = depth_override_val(value)
         if field == 'pylib':
             self.pylib = boolval(value)
         if field == 'pylib_all':
